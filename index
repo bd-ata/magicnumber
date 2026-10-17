@@ -238,4 +238,362 @@
             // 計算長寬所需的縮放比例，保留 5% 的邊距
             const scaleX = window.innerWidth / totalWidth;
             const scaleY = window.innerHeight / totalHeight;
-            const scale = Math.min(scaleX, scaleY, 1) * 0.95;
+            const scale = Math.min(scaleX, scaleY, 1) * 0.95; 
+            
+            arena.style.transform = `scale(${scale})`;
+        }
+
+        window.addEventListener('resize', resizeArena);
+
+        function applySettingsAndStart() {
+            document.getElementById('start-screen').classList.add('hidden');
+            const arena = document.getElementById('battle-arena');
+            arena.innerHTML = ''; 
+
+            players = [];
+            for (let i = 0; i < config.players; i++) {
+                let p = new PlayerBoard(THEMES[i]);
+                players.push(p);
+                arena.appendChild(p.createDOM());
+                p.reset();
+            }
+
+            players.forEach(p => p.opponents = players.filter(other => other !== p));
+            
+            resizeArena(); // 執行自適應縮放
+
+            globalGameOver = false;
+            initAudio();
+            startBGM(config.bgm);
+            cancelAnimationFrame(mainLoopId);
+            mainLoopId = requestAnimationFrame(gameLoop);
+        }
+
+        // --- 音效引擎 ---
+        let audioCtx;
+        let bgmInterval;
+
+        function initAudio() {
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+        }
+
+        function playTone(freq, type, duration, vol) {
+            if (!audioCtx) return;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = type;
+            osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+            gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.start(); osc.stop(audioCtx.currentTime + duration);
+        }
+
+        function playClickSound() { playTone(800, 'sine', 0.1, 0.05); }
+        function playCancelSound() { playTone(300, 'triangle', 0.15, 0.05); }
+        function playClearSound() { playTone(400, 'square', 0.1, 0.05); setTimeout(() => playTone(800, 'square', 0.2, 0.05), 100); }
+        function playAttackSound() { playTone(900, 'sawtooth', 0.1, 0.1); setTimeout(() => playTone(700, 'sawtooth', 0.2, 0.1), 100); }
+        function playGameOverSound() { playTone(300, 'sawtooth', 0.5, 0.1); setTimeout(() => playTone(200, 'sawtooth', 1.0, 0.1), 300); }
+
+        function startBGM(style) {
+            clearInterval(bgmInterval);
+            let notes, type, speed, vol;
+            if (style === 'relax') {
+                notes = [261, 329, 392, 523, 392, 329]; type = 'triangle'; speed = 400; vol = 0.03;
+            } else if (style === 'arcade') {
+                notes = [196, 0, 196, 233, 196, 0, 261, 233]; type = 'square'; speed = 180; vol = 0.02;
+            } else { 
+                notes = [100, 105, 110, 115, 120, 115, 110, 105]; type = 'sawtooth'; speed = 120; vol = 0.04;
+            }
+            let i = 0;
+            bgmInterval = setInterval(() => {
+                let freq = notes[i % notes.length];
+                if (freq > 0) playTone(freq, type, 0.1, vol); 
+                i++;
+            }, speed); 
+        }
+        function stopBGM() { clearInterval(bgmInterval); }
+
+        // --- 核心遊戲類別 ---
+        const HEX_WIDTH = 50; const HEX_HEIGHT = 57; const ROW_HEIGHT = 42; const DANGER_Y = 405;
+        let globalGameOver = false; let mainLoopId; let players = [];
+
+        class PlayerBoard {
+            constructor(theme) {
+                this.theme = theme;
+                this.opponents = [];
+            }
+
+            createDOM() {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'player-wrapper';
+                wrapper.innerHTML = `
+                    <div class="player-title" style="color: ${this.theme.color};">${this.theme.name}</div>
+                    <div class="header">
+                        <div>⭐ <span id="${this.theme.id}-score">0</span></div>
+                        <div id="${this.theme.id}-speed">🚀 Lv.1</div>
+                    </div>
+                    <div class="current-sum-display" id="${this.theme.id}-sum-box"></div>
+                    <div class="game-container" id="${this.theme.id}-container" style="border-color: ${this.theme.border}; background: ${this.theme.bg};">
+                        <div class="danger-zone" style="background: repeating-linear-gradient(45deg, ${this.theme.color}, ${this.theme.color} 10px, #333 10px, #333 20px);"></div>
+                    </div>
+                `;
+                return wrapper;
+            }
+
+            reset() {
+                this.container = document.getElementById(`${this.theme.id}-container`);
+                this.scoreDisplay = document.getElementById(`${this.theme.id}-score`);
+                this.speedDisplay = document.getElementById(`${this.theme.id}-speed`);
+                this.sumBox = document.getElementById(`${this.theme.id}-sum-box`);
+                
+                this.container.querySelectorAll('.hexagon, .particle, .floating-text').forEach(el => el.remove());
+                this.activeHexes = []; this.selectedObjs = [];
+                this.currentSum = 0; this.score = 0; this.rowIndex = 0; this.topMostY = 0;
+                this.currentTarget = 0; 
+                
+                this.speed = 0.05; this.baseSpeed = 0.05;
+                this.scoreDisplay.innerText = 0;
+                
+                // 開局生成幾排數字
+                for(let y = 150; y >= -ROW_HEIGHT; y -= ROW_HEIGHT) this.generateRow(y);
+
+                if (config.mode === 'multi') this.generateNewTarget();
+                else this.updateSumDisplay();
+            }
+
+            generateRow(y) {
+                let count = this.rowIndex % 2 === 0 ? 6 : 5;
+                let offsetX = this.rowIndex % 2 === 0 ? 0 : 25;
+
+                for (let c = 0; c < count; c++) {
+                    let hex = document.createElement('div');
+                    hex.classList.add('hexagon');
+                    let val = Math.floor(Math.random() * 9) + 1; // 隨機 1~9
+                    hex.innerText = val;
+
+                    let obj = { el: hex, val: val, x: c * HEX_WIDTH + offsetX, y: y };
+                    hex.style.left = obj.x + 'px'; hex.style.top = obj.y + 'px';
+                    
+                    hex.addEventListener('pointerdown', (e) => { e.preventDefault(); this.handleHexClick(obj); });
+                    
+                    this.container.appendChild(hex);
+                    this.activeHexes.push(obj);
+                }
+                this.rowIndex++; this.topMostY = y;
+            }
+
+            generateNewTarget() {
+                if (this.activeHexes.length >= 2) {
+                    let idx1 = Math.floor(Math.random() * this.activeHexes.length);
+                    let idx2 = Math.floor(Math.random() * this.activeHexes.length);
+                    while(idx1 === idx2 && this.activeHexes.length > 1) {
+                        idx2 = Math.floor(Math.random() * this.activeHexes.length);
+                    }
+                    this.currentTarget = this.activeHexes[idx1].val * this.activeHexes[idx2].val;
+                } else {
+                    this.currentTarget = (Math.floor(Math.random() * 9) + 1) * (Math.floor(Math.random() * 9) + 1);
+                }
+                this.updateSumDisplay();
+            }
+
+            handleHexClick(obj) {
+                if (globalGameOver) return;
+                
+                let index = this.selectedObjs.indexOf(obj);
+                if (index > -1) {
+                    obj.el.classList.remove('selected');
+                    this.selectedObjs.splice(index, 1);
+                    if (config.mode !== 'multi') this.currentSum -= obj.val;
+                    playCancelSound();
+                    this.updateSumDisplay();
+                    return;
+                }
+
+                if (config.mode === 'multi' && this.selectedObjs.length >= 2) return;
+
+                obj.el.classList.add('selected');
+                this.selectedObjs.push(obj);
+                if (config.mode !== 'multi') this.currentSum += obj.val;
+                playClickSound();
+
+                this.updateSumDisplay();
+
+                if (config.mode === 'multi') {
+                    if (this.selectedObjs.length === 2) {
+                        let prod = this.selectedObjs[0].val * this.selectedObjs[1].val;
+                        if (prod === this.currentTarget) {
+                            let toClear = [...this.selectedObjs];
+                            this.selectedObjs = [];
+                            this.processClear(toClear);
+                            this.generateNewTarget();
+                        } else {
+                            let toReset = [...this.selectedObjs];
+                            this.selectedObjs = [];
+                            this.updateSumDisplay();
+                            playCancelSound();
+                            toReset.forEach(o => {
+                                o.el.style.backgroundColor = '#E57373'; o.el.style.color = '#FFF';
+                                setTimeout(() => {
+                                    if (!this.selectedObjs.includes(o)) {
+                                        o.el.style.backgroundColor = ''; o.el.style.color = ''; o.el.classList.remove('selected');
+                                    }
+                                }, 300);
+                            });
+                        }
+                    }
+                } else {
+                    let target = parseInt(config.mode);
+                    if (this.currentSum === target) {
+                        let toClear = [...this.selectedObjs];
+                        this.selectedObjs = []; this.currentSum = 0; this.updateSumDisplay();
+                        this.processClear(toClear);
+                    } else if (this.currentSum > target) {
+                        let toReset = [...this.selectedObjs];
+                        this.selectedObjs = []; this.currentSum = 0; this.updateSumDisplay();
+                        playCancelSound();
+                        toReset.forEach(o => {
+                            o.el.style.transform = 'scale(0.8)';
+                            setTimeout(() => { o.el.style.transform = ''; o.el.classList.remove('selected'); }, 200);
+                        });
+                    }
+                }
+            }
+
+            updateSumDisplay() {
+                if (config.mode === 'multi') {
+                    if (this.selectedObjs.length === 1) {
+                        this.sumBox.innerHTML = `🎯 找相乘 = <span style="color:#D32F2F">${this.currentTarget}</span> ( ${this.selectedObjs[0].val} × ? )`;
+                    } else {
+                        this.sumBox.innerHTML = `🎯 找相乘 = <span style="color:#D32F2F">${this.currentTarget}</span>`;
+                    }
+                    this.sumBox.style.color = '#5D535E';
+                } else {
+                    let target = parseInt(config.mode);
+                    this.sumBox.innerHTML = `加總：<span>${this.currentSum}</span> / ${target}`;
+                    if (this.currentSum === target) this.sumBox.style.color = '#FF9800';
+                    else if (this.currentSum > target) this.sumBox.style.color = '#E57373';
+                    else this.sumBox.style.color = '#5D535E';
+                }
+            }
+
+            processClear(hexesToClear) {
+                playClearSound();
+                let scoreGain = hexesToClear.length * 10;
+                this.score += scoreGain;
+                this.scoreDisplay.innerText = this.score;
+                
+                hexesToClear.forEach(obj => {
+                    let index = this.activeHexes.indexOf(obj);
+                    if (index > -1) this.activeHexes.splice(index, 1); 
+                    this.spawnParticles(obj.x + 25, obj.y + 28); 
+                    obj.el.classList.add('flash');
+                    setTimeout(() => obj.el.remove(), 300);
+                });
+                
+                let lastObj = hexesToClear[hexesToClear.length - 1];
+
+                let isAttack = false;
+                if (config.mode === 'multi') isAttack = true; 
+                else if (hexesToClear.length >= 3) isAttack = true; 
+
+                if (config.players > 1 && isAttack) {
+                    playAttackSound();
+                    this.spawnFloatingText(lastObj.x, lastObj.y, `攻擊!`, '#D32F2F');
+                    let attackPower = (config.mode === 'multi') ? 0.03 : 0.05; 
+                    this.opponents.forEach(opp => opp.receiveAttack(attackPower));
+                } else {
+                    this.spawnFloatingText(lastObj.x, lastObj.y, `+${scoreGain}`, '#FF9800');
+                }
+            }
+
+            receiveAttack(power) {
+                this.speed += power; 
+                this.container.style.boxShadow = "inset 0 0 40px rgba(229, 115, 115, 0.9)";
+                setTimeout(() => { this.container.style.boxShadow = "inset 0 0 20px rgba(0,0,0,0.05)"; }, 400);
+            }
+
+            update() {
+                if (globalGameOver) return;
+                this.speed += 0.00003; 
+                
+                let level = Math.floor((this.speed - this.baseSpeed) / 0.05) + 1;
+                this.speedDisplay.innerText = `🚀 Lv.${level}`;
+                
+                for (let i = 0; i < this.activeHexes.length; i++) {
+                    let obj = this.activeHexes[i];
+                    obj.y += this.speed; obj.el.style.top = obj.y + 'px';
+                    if (obj.y + HEX_HEIGHT > DANGER_Y) {
+                        triggerGameOver(this); 
+                        return;
+                    }
+                }
+                
+                this.topMostY += this.speed;
+                if (this.topMostY > -ROW_HEIGHT) this.generateRow(this.topMostY - ROW_HEIGHT);
+            }
+
+            spawnParticles(x, y) {
+                for (let i = 0; i < 5; i++) {
+                    let p = document.createElement('div'); p.classList.add('particle');
+                    p.style.left = `${x}px`; p.style.top = `${y}px`; this.container.appendChild(p);
+                    let angle = Math.random() * Math.PI * 2; let dist = Math.random() * 40 + 20;
+                    setTimeout(() => { p.style.transform = `translate(${Math.cos(angle)*dist}px, ${Math.sin(angle)*dist}px) scale(0) rotate(${Math.random()*360}deg)`; p.style.opacity = '0'; }, 10);
+                    setTimeout(() => p.remove(), 600);
+                }
+            }
+
+            spawnFloatingText(x, y, text, color) {
+                let txt = document.createElement('div'); txt.classList.add('floating-text');
+                txt.innerText = text; txt.style.color = color; txt.style.left = `${x}px`; txt.style.top = `${y}px`;
+                this.container.appendChild(txt); setTimeout(() => txt.remove(), 1000);
+            }
+        }
+
+        function gameLoop() {
+            if (globalGameOver) return;
+            players.forEach(p => p.update());
+            mainLoopId = requestAnimationFrame(gameLoop);
+        }
+
+        function triggerGameOver(loser) {
+            globalGameOver = true;
+            cancelAnimationFrame(mainLoopId);
+            stopBGM();
+            playGameOverSound();
+            fireConfetti();
+            
+            const winnerDisplay = document.getElementById('winner-display');
+            if (config.players === 1) {
+                winnerDisplay.innerText = `挑戰結束！\n得分: ${players[0].score}`;
+            } else {
+                let alivePlayers = players.filter(p => p !== loser);
+                let winner = alivePlayers.sort((a, b) => b.score - a.score)[0];
+                winnerDisplay.innerText = `🏆 ${winner.theme.name} 獲勝 🏆`;
+            }
+
+            document.getElementById('game-over-screen').classList.remove('hidden');
+        }
+
+        // --- 華麗紙片噴發特效 ---
+        function fireConfetti() {
+            const colors = ['#fce18a', '#ff726d', '#b48def', '#f4306d', '#4CAF50', '#00BCD4'];
+            for(let i = 0; i < 150; i++) {
+                let conf = document.createElement('div');
+                conf.classList.add('confetti');
+                conf.style.left = Math.random() * 100 + 'vw';
+                conf.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                
+                let duration = Math.random() * 3 + 2;
+                let delay = Math.random() * 2;
+                conf.style.animationDuration = `${duration}s`;
+                conf.style.animationDelay = `${delay}s`;
+                
+                document.body.appendChild(conf);
+                setTimeout(() => conf.remove(), (duration + delay) * 1000);
+            }
+        }
+    </script>
+</body>
+</html>
