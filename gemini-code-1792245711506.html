@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <!-- 增加 maximum-scale=1.0 與 user-scalable=no 防止手機雙擊或捏合縮放 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>魔法數字派對 - 乘法特訓版</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@700;900&display=swap');
+
+        body {
+            background-color: #E5D9DD; 
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            font-family: 'Nunito', sans-serif;
+            overflow: hidden;
+            touch-action: none; 
+        }
+
+        /* 遊戲大廳設定面板 */
+        .settings-panel {
+            background: #FFF;
+            padding: 30px 40px;
+            border-radius: 20px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+            text-align: center;
+            width: 90%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-sizing: border-box;
+            z-index: 2000;
+        }
+
+        .settings-panel h1 { color: #5D535E; font-size: 38px; margin-top: 0; margin-bottom: 5px; }
+        .settings-panel .subtitle { color: #E57373; font-size: 20px; font-weight: bold; margin-bottom: 25px; }
+
+        .setting-group { margin-bottom: 20px; text-align: left; }
+        .setting-group label { font-size: 20px; color: #42A5F5; font-weight: 900; display: block; margin-bottom: 10px; }
+        .options { display: flex; gap: 10px; flex-wrap: wrap; }
+        
+        .opt-btn {
+            background: #F4EAE6; color: #5D535E; border: 2px solid transparent;
+            padding: 10px 20px; font-size: 18px; border-radius: 15px; font-weight: bold;
+            cursor: pointer; transition: all 0.2s;
+            flex: 1 1 auto;
+            text-align: center;
+        }
+        .opt-btn.active { background: #FF9800; color: #FFF; border-color: #E65100; transform: scale(1.05); box-shadow: 0 4px 10px rgba(255,152,0,0.3); }
+
+        .start-btn {
+            background: #E57373; color: white; border: none; width: 100%;
+            padding: 18px; font-size: 26px; border-radius: 30px; font-weight: bold;
+            cursor: pointer; box-shadow: 0 6px 0 #C62828; margin-top: 10px; transition: 0.1s;
+        }
+        .start-btn:active { transform: translateY(6px); box-shadow: 0 0 0 #C62828; }
+
+        /* 遊戲區域 */
+        #battle-arena {
+            display: flex; flex-wrap: wrap; gap: 20px; width: 100%;
+            justify-content: center; align-items: center;
+            transform-origin: center; transition: transform 0.3s;
+        }
+
+        .player-wrapper { display: flex; flex-direction: column; align-items: center; }
+        .player-title { font-size: 28px; font-weight: 900; margin-bottom: 5px; text-shadow: 2px 2px 0 #FFF; }
+        
+        .header { display: flex; justify-content: space-between; width: 300px; margin-bottom: 5px; font-size: 18px; font-weight: 900; }
+        .score-board { color: #FF9800; }
+        .speed-indicator { color: #E57373; }
+
+        .current-sum-display {
+            font-size: 20px; background: rgba(255, 255, 255, 0.7); padding: 5px 20px;
+            border-radius: 20px; margin-bottom: 10px; font-weight: bold; transition: color 0.2s;
+            text-align: center; width: 260px; height: 30px; display: flex; align-items: center; justify-content: center;
+        }
+
+        .game-container {
+            position: relative; width: 300px; height: 420px; background: rgba(255, 255, 255, 0.3);
+            border: 4px solid #B8A9AB; border-radius: 10px; overflow: hidden; box-shadow: inset 0 0 20px rgba(0,0,0,0.05);
+        }
+
+        .danger-zone { position: absolute; bottom: 0; width: 100%; height: 12px; z-index: 100; transition: box-shadow 0.3s; }
+
+        .hexagon {
+            position: absolute; width: 50px; height: 57px; background-color: #D3C4D1;
+            clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 24px; color: #5D535E; font-weight: bold; cursor: pointer; user-select: none;
+            transition: background-color 0.1s, transform 0.1s;
+        }
+        .hexagon:active { transform: scale(0.9); }
+        .hexagon.selected { background-color: #FFF2B2 !important; transform: scale(1.15); color: #FF9800; z-index: 10; box-shadow: 0 0 10px #FFEB3B; }
+        .hexagon.flash { background-color: #FFF !important; transform: scale(1.3); opacity: 0; transition: all 0.3s ease-out; }
+
+        .particle {
+            position: absolute; width: 10px; height: 10px; background-color: #FFEB3B;
+            clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+            pointer-events: none; z-index: 1000; transition: transform 0.6s ease-out, opacity 0.6s ease-out;
+        }
+
+        .floating-text {
+            position: absolute; font-size: 22px; font-weight: 900; z-index: 999; pointer-events: none;
+            animation: floatUp 1s forwards; text-shadow: 2px 2px 0 #FFF, -2px -2px 0 #FFF, 2px -2px 0 #FFF, -2px 2px 0 #FFF;
+        }
+        @keyframes floatUp { 0% { opacity: 1; transform: translateY(0) scale(1); } 100% { opacity: 0; transform: translateY(-40px) scale(1.5); } }
+
+        /* 全螢幕覆蓋層 */
+        .overlay {
+            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(229, 217, 221, 0.95); display: flex; flex-direction: column;
+            align-items: center; justify-content: center; z-index: 2000;
+        }
+        .hidden { display: none !important; }
+
+        /* 華麗結算畫面 */
+        #game-over-screen { background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(5px); padding: 20px; text-align: center; }
+        .winner-text { 
+            font-size: 60px; margin: 10px 0; 
+            background: linear-gradient(to right, #FF9800, #FFEB3B, #4CAF50, #00BCD4, #E91E63);
+            -webkit-background-clip: text; color: transparent;
+            animation: pulse 1s infinite alternate; text-shadow: 0 0 20px rgba(255,255,255,0.3);
+        }
+        @keyframes pulse { from { transform: scale(1); } to { transform: scale(1.1); } }
+
+        /* 彩色紙片 (Confetti) */
+        .confetti { position: absolute; width: 10px; height: 20px; z-index: 3000; animation: fall linear forwards; }
+        @keyframes fall { to { transform: translateY(100vh) rotate(720deg); } }
+
+        /* 手機適配 (響應式設計) */
+        @media (max-width: 768px) {
+            .settings-panel { padding: 20px; }
+            .settings-panel h1 { font-size: 32px; }
+            .opt-btn { font-size: 16px; padding: 10px; flex: 1 1 calc(50% - 10px); }
+            .start-btn { font-size: 22px; padding: 15px; }
+            .winner-text { font-size: 40px; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 遊戲大廳設定 -->
+    <div id="start-screen" class="overlay">
+        <div class="settings-panel">
+            <h1>魔法數字派對</h1>
+            <div class="subtitle">算數特訓版 🚀</div>
+
+            <div class="setting-group">
+                <label>👥 玩家人數</label>
+                <div class="options" id="opt-players">
+                    <div class="opt-btn active" data-val="1">單人挑戰</div>
+                    <div class="opt-btn" data-val="2">雙人 PK</div>
+                    <div class="opt-btn" data-val="3">三人大亂鬥</div>
+                </div>
+            </div>
+
+            <div class="setting-group">
+                <label>🎮 遊戲模式</label>
+                <div class="options" id="opt-mode">
+                    <div class="opt-btn active" data-val="10">合 10</div>
+                    <div class="opt-btn" data-val="20">合 20</div>
+                    <div class="opt-btn" data-val="multi">乘法特訓 ✖️</div>
+                </div>
+            </div>
+
+            <div class="setting-group">
+                <label>🎵 背景音樂</label>
+                <div class="options" id="opt-bgm">
+                    <div class="opt-btn" data-val="relax">輕鬆休閒</div>
+                    <div class="opt-btn active" data-val="arcade">復古街機</div>
+                    <div class="opt-btn" data-val="tense">極限刺激</div>
+                </div>
+            </div>
+
+            <button class="start-btn" onclick="applySettingsAndStart()">開始遊戲！</button>
+        </div>
+    </div>
+
+    <!-- 華麗結算畫面 -->
+    <div id="game-over-screen" class="overlay hidden">
+        <h1 style="color: white; text-shadow: none;">GAME OVER</h1>
+        <h2 id="winner-display" class="winner-text">1P 獲勝！</h2>
+        <button class="start-btn" style="width:auto; padding: 15px 40px;" onclick="location.reload()">回主畫面</button>
+    </div>
+
+    <!-- 遊戲動態生成區域 -->
+    <div id="battle-arena"></div>
+
+    <script>
+        // --- 設定狀態與 UI 互動 ---
+        const config = { players: 1, mode: '10', bgm: 'arcade' };
+
+        document.querySelectorAll('.options').forEach(group => {
+            group.addEventListener('click', (e) => {
+                if (e.target.classList.contains('opt-btn')) {
+                    group.querySelectorAll('.opt-btn').forEach(b => b.classList.remove('active'));
+                    e.target.classList.add('active');
+                    let key = group.id.split('-')[1];
+                    let val = e.target.dataset.val;
+                    config[key] = (key === 'players') ? parseInt(val) : val;
+                }
+            });
+        });
+
+        const THEMES = [
+            { id: 'p1', name: '1P (藍)', color: '#42A5F5', border: '#90CAF9', bg: 'rgba(144, 202, 249, 0.1)' },
+            { id: 'p2', name: '2P (紅)', color: '#EF5350', border: '#EF9A9A', bg: 'rgba(239, 154, 154, 0.1)' },
+            { id: 'p3', name: '3P (綠)', color: '#66BB6A', border: '#A5D6A7', bg: 'rgba(165, 214, 167, 0.1)' }
+        ];
+
+        // 動態計算縮放比例，讓多人模式在手機上也能全螢幕顯示不跑版
+        function resizeArena() {
+            const arena = document.getElementById('battle-arena');
+            if (arena.innerHTML === '') return;
+            
+            const isMobile = window.innerWidth <= 768;
+            
+            // 手機上多人模式垂直排列，桌面端水平排列
+            arena.style.flexDirection = (isMobile && config.players > 1) ? 'column' : 'row';
+            arena.style.transform = 'scale(1)'; // 重置計算
+            
+            const wrapperWidth = 320; 
+            const wrapperHeight = 540; 
+            
+            let totalWidth, totalHeight;
+            if (isMobile && config.players > 1) {
+                totalWidth = wrapperWidth;
+                totalHeight = wrapperHeight * config.players;
+            } else {
+                totalWidth = wrapperWidth * config.players;
+                totalHeight = wrapperHeight;
+            }
+            
+            // 計算長寬所需的縮放比例，保留 5% 的邊距
+            const scaleX = window.innerWidth / totalWidth;
+            const scaleY = window.innerHeight / totalHeight;
+            const scale = Math.min(scaleX, scaleY, 1) * 0.95;
