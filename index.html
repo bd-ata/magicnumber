@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>魔法數字派對 - 終極狂熱版</title>
+    <title>魔法數字派對 - 終極完整版</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@700;900&display=swap');
 
@@ -13,33 +13,44 @@
             height: 100vh; font-family: 'Nunito', sans-serif; overflow: hidden; touch-action: none; 
         }
 
-        /* 大廳設定面板 */
-        .settings-panel {
-            background: #FFF; padding: 30px; border-radius: 20px;
+        /* 大廳與教學面板 */
+        .settings-panel, .tutorial-card {
+            background: #FFF; padding: 25px; border-radius: 20px;
             box-shadow: 0 15px 35px rgba(0,0,0,0.1); text-align: center;
             width: 90%; max-width: 500px; z-index: 2000;
+            max-height: 85vh; overflow-y: auto; /* 避免手機螢幕太小裝不下 */
         }
 
         .settings-panel h1 { color: #5D535E; font-size: 32px; margin: 0 0 5px 0; }
-        .settings-panel .subtitle { color: #E57373; font-size: 18px; font-weight: bold; margin-bottom: 25px; }
+        .settings-panel .subtitle { color: #E57373; font-size: 18px; font-weight: bold; margin-bottom: 20px; }
 
         .setting-group { margin-bottom: 15px; text-align: left; }
-        .setting-group label { font-size: 18px; color: #42A5F5; font-weight: 900; display: block; margin-bottom: 8px; }
+        .setting-group label { font-size: 16px; color: #42A5F5; font-weight: 900; display: block; margin-bottom: 8px; }
         .options { display: flex; gap: 8px; flex-wrap: wrap; }
         
         .opt-btn {
             background: #F4EAE6; color: #5D535E; border: 2px solid transparent;
-            padding: 8px 16px; font-size: 16px; border-radius: 12px; font-weight: bold;
+            padding: 8px 14px; font-size: 15px; border-radius: 12px; font-weight: bold;
             cursor: pointer; transition: all 0.2s;
         }
         .opt-btn.active { background: #FF9800; color: #FFF; border-color: #E65100; transform: scale(1.05); box-shadow: 0 4px 10px rgba(255,152,0,0.3); }
 
-        .start-btn {
-            background: #E57373; color: white; border: none; width: 100%;
-            padding: 15px; font-size: 22px; border-radius: 25px; font-weight: bold;
-            cursor: pointer; box-shadow: 0 6px 0 #C62828; margin-top: 10px; transition: 0.1s;
+        .btn-wrap { display: flex; gap: 10px; justify-content: center; margin-top: 15px; }
+
+        .btn {
+            background: #FF9800; color: white; border: none; flex: 1;
+            padding: 15px; font-size: 20px; border-radius: 25px; font-weight: bold;
+            cursor: pointer; box-shadow: 0 6px 0 #E65100; transition: 0.1s;
         }
-        .start-btn:active { transform: translateY(6px); box-shadow: 0 0 0 #C62828; }
+        .btn:active { transform: translateY(6px); box-shadow: 0 0 0 #E65100; }
+        .btn-info { background: #42A5F5; box-shadow: 0 6px 0 #1565C0; }
+        .btn-info:active { box-shadow: 0 0 0 #1565C0; }
+
+        /* 教學樣式 */
+        .tutorial-card h2 { color: #42A5F5; margin-top: 0; font-size: 28px; }
+        .tutorial-card ul { padding-left: 20px; line-height: 1.6; font-size: 16px; text-align: left; color: #5D535E;}
+        .tutorial-card li { margin-bottom: 12px; }
+        .highlight { font-weight: bold; color: #D32F2F; background: rgba(211, 47, 47, 0.1); padding: 2px 4px; border-radius: 4px;}
 
         /* 遊戲區域 */
         #battle-arena {
@@ -52,15 +63,15 @@
             flex: 1; min-width: 280px; max-width: 500px; position: relative;
         }
 
-        .player-title { font-size: 26px; font-weight: 900; margin-bottom: 5px; text-shadow: 2px 2px 0 #FFF; display: flex; align-items: center; justify-content: center; gap: 10px; }
-        .fever-badge { font-size: 14px; background: #E91E63; color: white; padding: 2px 8px; border-radius: 10px; display: none; animation: pulse 0.5s infinite; }
+        .player-title { font-size: 24px; font-weight: 900; margin-bottom: 5px; text-shadow: 2px 2px 0 #FFF; display: flex; align-items: center; justify-content: center; gap: 10px; }
+        .fever-badge { font-size: 12px; background: #E91E63; color: white; padding: 2px 8px; border-radius: 10px; display: none; animation: pulse 0.5s infinite; }
         
-        .header { display: flex; justify-content: space-between; width: 100%; max-width: 340px; margin-bottom: 5px; font-size: 18px; font-weight: 900; }
+        .header { display: flex; justify-content: space-between; width: 100%; max-width: 340px; margin-bottom: 5px; font-size: 16px; font-weight: 900; }
         .score-board { color: #FF9800; }
         .speed-indicator { color: #E57373; }
 
         .current-sum-display {
-            font-size: 20px; background: rgba(255, 255, 255, 0.8); padding: 5px 15px;
+            font-size: 18px; background: rgba(255, 255, 255, 0.8); padding: 5px 15px;
             border-radius: 20px; margin-bottom: 10px; font-weight: bold; transition: color 0.2s;
             text-align: center; width: 100%; max-width: 310px; height: 35px; display: flex; align-items: center; justify-content: center;
             box-shadow: 0 4px 6px rgba(0,0,0,0.05);
@@ -74,9 +85,7 @@
         }
 
         /* Fever 狂熱特效 */
-        .game-container.fever-active {
-            animation: feverBorder 0.6s infinite alternate;
-        }
+        .game-container.fever-active { animation: feverBorder 0.6s infinite alternate; }
         @keyframes feverBorder {
             from { border-color: #FF9800; box-shadow: inset 0 0 20px rgba(255, 152, 0, 0.4); background: rgba(255, 243, 224, 0.6); }
             to { border-color: #E91E63; box-shadow: inset 0 0 40px rgba(233, 30, 99, 0.6); background: rgba(252, 228, 236, 0.6); }
@@ -102,10 +111,7 @@
             background-color: #B3E5FC !important; border: 2px solid #E1F5FE;
             color: #0277BD; pointer-events: none; opacity: 0.9;
         }
-        .hexagon.frozen::after {
-            content: '🧊'; position: absolute; font-size: 16px; top: -2px; right: -2px;
-        }
-
+        .hexagon.frozen::after { content: '🧊'; position: absolute; font-size: 16px; top: -2px; right: -2px; }
         .hexagon.falling { z-index: 1; filter: brightness(0.8); }
 
         .particle {
@@ -115,7 +121,7 @@
         }
 
         .floating-text {
-            position: absolute; font-size: 22px; font-weight: 900; z-index: 999; pointer-events: none;
+            position: absolute; font-size: 20px; font-weight: 900; z-index: 999; pointer-events: none;
             animation: floatUp 1s forwards; text-shadow: 2px 2px 0 #FFF, -2px -2px 0 #FFF, 2px -2px 0 #FFF, -2px 2px 0 #FFF;
         }
         @keyframes floatUp { 0% { opacity: 1; transform: translateY(0) scale(1); } 100% { opacity: 0; transform: translateY(-40px) scale(1.5); } }
@@ -131,14 +137,19 @@
             animation: pulse 1s infinite alternate; text-shadow: 0 0 20px rgba(255,255,255,0.3);
         }
         @keyframes pulse { from { transform: scale(1); } to { transform: scale(1.1); } }
+        
+        /* 撒花特效 (Confetti) */
+        .confetti { position: absolute; width: 10px; height: 20px; z-index: 3000; animation: fall linear forwards; }
+        @keyframes fall { to { transform: translateY(100vh) rotate(720deg); } }
     </style>
 </head>
 <body>
 
+    <!-- 遊戲大廳設定 -->
     <div id="start-screen" class="overlay">
         <div class="settings-panel">
             <h1>魔法數字派對</h1>
-            <div class="subtitle">💣 冰火狂熱版 🧊</div>
+            <div class="subtitle">💣 完整極致版 🧊</div>
 
             <div class="setting-group">
                 <label>👥 玩家人數</label>
@@ -157,20 +168,46 @@
                 </div>
             </div>
 
-            <button class="start-btn" onclick="applySettingsAndStart()">燃燒吧！開戰！</button>
+            <div class="setting-group">
+                <label>🎵 背景音樂</label>
+                <div class="options" id="opt-bgm">
+                    <div class="opt-btn" data-val="relax">輕鬆</div>
+                    <div class="opt-btn active" data-val="arcade">街機</div>
+                    <div class="opt-btn" data-val="tense">刺激</div>
+                </div>
+            </div>
+
+            <div class="btn-wrap">
+                <button class="btn btn-info" onclick="showTutorial()">玩法說明 📖</button>
+                <button class="btn" onclick="applySettingsAndStart()">直接開戰 ⚔️</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 規則說明面板 -->
+    <div id="tutorial-screen" class="overlay hidden">
+        <div class="tutorial-card">
+            <h2>📜 新規則秘笈</h2>
+            <ul>
+                <li><span class="highlight">⛓️ 斷鏈墜落：</span>方塊必須連接天花板，如果切斷連結，底下的方塊會全部掉落消失並得分！</li>
+                <li><span class="highlight">💣 爆破炸彈：</span>畫面會隨機掉落炸彈，直接點擊會炸毀周圍的方塊（可用來製造斷鏈）！</li>
+                <li><span class="highlight">🔥 狂熱連擊：</span>3 秒內連續消除 3 次會進入 Fever 狂熱狀態。分數雙倍，對手受到的攻擊也雙倍！</li>
+                <li><span class="highlight">🧊 冰凍干擾：</span>(對戰限定) 受到攻擊時方塊會結冰。冰塊無法點擊，必須在它旁邊消除其他方塊才能震碎解凍！</li>
+            </ul>
+            <button class="btn btn-info" style="width: 100%; margin-top: 15px;" onclick="hideTutorial()">我準備好了！</button>
         </div>
     </div>
 
     <div id="game-over-screen" class="overlay hidden">
         <h1 style="color: white; text-shadow: none;">GAME OVER</h1>
         <h2 id="winner-display" class="winner-text">1P 獲勝！</h2>
-        <button class="start-btn" style="width:80%; max-width: 300px; padding: 15px;" onclick="location.reload()">重新設定</button>
+        <button class="btn" style="width:80%; max-width: 300px; margin-top: 20px;" onclick="location.reload()">回首頁重新設定</button>
     </div>
 
     <div id="battle-arena"></div>
 
     <script>
-        const config = { players: 1, mode: '10' };
+        const config = { players: 1, mode: '10', bgm: 'arcade' };
 
         document.querySelectorAll('.options').forEach(group => {
             group.addEventListener('click', (e) => {
@@ -189,8 +226,18 @@
             { id: 'p2', name: '2P (紅)', color: '#EF5350', border: '#EF9A9A', bg: 'rgba(239, 154, 154, 0.2)' }
         ];
 
+        function showTutorial() {
+            document.getElementById('start-screen').classList.add('hidden');
+            document.getElementById('tutorial-screen').classList.remove('hidden');
+        }
+        function hideTutorial() {
+            document.getElementById('tutorial-screen').classList.add('hidden');
+            document.getElementById('start-screen').classList.remove('hidden');
+        }
+
         function applySettingsAndStart() {
             document.getElementById('start-screen').classList.add('hidden');
+            document.getElementById('tutorial-screen').classList.add('hidden');
             const arena = document.getElementById('battle-arena');
             arena.innerHTML = ''; 
 
@@ -205,12 +252,13 @@
 
             globalGameOver = false;
             initAudio();
+            startBGM(config.bgm); // 啟動背景音樂
             cancelAnimationFrame(mainLoopId);
             setTimeout(() => { mainLoopId = requestAnimationFrame(gameLoop); }, 100);
         }
 
-        // --- 音效引擎 ---
-        let audioCtx;
+        // --- 音效引擎 (包含 BGM) ---
+        let audioCtx; let bgmInterval;
         function initAudio() {
             if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
             if (audioCtx.state === 'suspended') audioCtx.resume();
@@ -230,15 +278,32 @@
         function playBreakSound() { playTone(150, 'sawtooth', 0.2, 0.08); } 
         function playBombSound() { playTone(100, 'square', 0.3, 0.2); setTimeout(() => playTone(50, 'sawtooth', 0.4, 0.2), 100); }
         function playFeverSound() { playTone(800, 'square', 0.1, 0.1); setTimeout(() => playTone(1000, 'square', 0.2, 0.1), 100); setTimeout(() => playTone(1200, 'square', 0.4, 0.1), 200); }
+        function playGameOverSound() { playTone(300, 'sawtooth', 0.5, 0.1); setTimeout(() => playTone(200, 'sawtooth', 1.0, 0.1), 300); }
+
+        function startBGM(style) {
+            clearInterval(bgmInterval);
+            let notes, type, speed, vol;
+            if (style === 'relax') {
+                notes = [261, 329, 392, 523, 392, 329]; type = 'triangle'; speed = 400; vol = 0.03;
+            } else if (style === 'arcade') {
+                notes = [196, 0, 196, 233, 196, 0, 261, 233]; type = 'square'; speed = 180; vol = 0.02;
+            } else { 
+                notes = [100, 105, 110, 115, 120, 115, 110, 105]; type = 'sawtooth'; speed = 120; vol = 0.04;
+            }
+            let i = 0;
+            bgmInterval = setInterval(() => {
+                let freq = notes[i % notes.length];
+                if (freq > 0) playTone(freq, type, 0.1, vol); 
+                i++;
+            }, speed); 
+        }
+        function stopBGM() { clearInterval(bgmInterval); }
 
         const HEX_WIDTH = 50; const HEX_HEIGHT = 57; const ROW_HEIGHT = 42; 
         let globalGameOver = false; let mainLoopId; let players = [];
 
         class PlayerBoard {
-            constructor(theme) {
-                this.theme = theme;
-                this.opponents = [];
-            }
+            constructor(theme) { this.theme = theme; this.opponents = []; }
 
             createDOM() {
                 const wrapper = document.createElement('div');
@@ -271,10 +336,7 @@
                 this.currentSum = 0; this.score = 0; this.rowIndex = 0; this.topMostY = 0;
                 this.currentTarget = 0; 
                 
-                // Fever 狂熱機制狀態
-                this.comboCount = 0;
-                this.lastClearTime = 0;
-                this.isFever = false;
+                this.comboCount = 0; this.lastClearTime = 0; this.isFever = false;
                 clearTimeout(this.feverTimeout);
                 this.container.classList.remove('fever-active');
                 this.feverBadge.style.display = 'none';
@@ -297,20 +359,16 @@
                     let hex = document.createElement('div');
                     hex.classList.add('hexagon');
                     
-                    // 5% 機率產生炸彈方塊
                     let isBomb = Math.random() < 0.05;
                     let val = 0;
                     if (isBomb) {
-                        hex.innerText = '💣';
-                        hex.classList.add('bomb-block');
+                        hex.innerText = '💣'; hex.classList.add('bomb-block');
                     } else {
-                        val = Math.floor(Math.random() * 9) + 1; 
-                        hex.innerText = val;
+                        val = Math.floor(Math.random() * 9) + 1; hex.innerText = val;
                     }
 
                     let obj = { el: hex, val: val, isBomb: isBomb, isFrozen: false, x: c * HEX_WIDTH + offsetX, y: y, falling: false, vy: 0 };
                     hex.style.left = obj.x + 'px'; hex.style.top = obj.y + 'px';
-                    
                     hex.addEventListener('pointerdown', (e) => { e.preventDefault(); this.handleHexClick(obj); });
                     
                     this.container.appendChild(hex);
@@ -335,20 +393,14 @@
             handleHexClick(obj) {
                 if (globalGameOver || obj.falling || obj.isFrozen) return;
 
-                // 點擊炸彈：直接爆破
-                if (obj.isBomb) {
-                    this.explodeBomb(obj);
-                    return;
-                }
+                if (obj.isBomb) { this.explodeBomb(obj); return; }
                 
                 let index = this.selectedObjs.indexOf(obj);
                 if (index > -1) {
                     obj.el.classList.remove('selected');
                     this.selectedObjs.splice(index, 1);
                     if (config.mode !== 'multi') this.currentSum -= obj.val;
-                    playCancelSound();
-                    this.updateSumDisplay();
-                    return;
+                    playCancelSound(); this.updateSumDisplay(); return;
                 }
 
                 if (config.mode === 'multi' && this.selectedObjs.length >= 2) return;
@@ -356,31 +408,22 @@
                 obj.el.classList.add('selected');
                 this.selectedObjs.push(obj);
                 if (config.mode !== 'multi') this.currentSum += obj.val;
-                playClickSound();
-
-                this.updateSumDisplay();
+                playClickSound(); this.updateSumDisplay();
 
                 if (config.mode === 'multi') {
                     if (this.selectedObjs.length === 2) {
-                        let prod = this.selectedObjs[0].val * this.selectedObjs[1].val;
-                        if (prod === this.currentTarget) {
-                            let toClear = [...this.selectedObjs];
-                            this.selectedObjs = [];
-                            this.processClear(toClear);
-                            this.generateNewTarget();
-                        } else {
-                            this.cancelSelectionWithError();
-                        }
+                        if (this.selectedObjs[0].val * this.selectedObjs[1].val === this.currentTarget) {
+                            let toClear = [...this.selectedObjs]; this.selectedObjs = [];
+                            this.processClear(toClear); this.generateNewTarget();
+                        } else { this.cancelSelectionWithError(); }
                     }
                 } else {
                     let target = parseInt(config.mode);
                     if (this.currentSum === target) {
-                        let toClear = [...this.selectedObjs];
-                        this.selectedObjs = []; this.currentSum = 0; this.updateSumDisplay();
-                        this.processClear(toClear);
+                        let toClear = [...this.selectedObjs]; this.selectedObjs = []; this.currentSum = 0;
+                        this.updateSumDisplay(); this.processClear(toClear);
                     } else if (this.currentSum > target) {
-                        this.currentSum = 0;
-                        this.cancelSelectionWithError();
+                        this.currentSum = 0; this.cancelSelectionWithError();
                     }
                 }
             }
@@ -388,35 +431,26 @@
             explodeBomb(bombObj) {
                 playBombSound();
                 let toClear = [];
-                // 找出炸彈周圍 (距離平方 < 4500) 的所有方塊
                 for (let h of this.activeHexes) {
                     if (h.falling) continue;
                     let dx = h.x - bombObj.x; let dy = h.y - bombObj.y;
-                    if (dx*dx + dy*dy < 4500) {
-                        toClear.push(h);
-                    }
+                    if (dx*dx + dy*dy < 4500) toClear.push(h);
                 }
                 
-                // 如果炸毀的方塊剛好在選取清單中，要重置選取狀態
                 toClear.forEach(h => {
                     let sIdx = this.selectedObjs.indexOf(h);
                     if(sIdx > -1) this.selectedObjs.splice(sIdx, 1);
                 });
                 
-                if (config.mode !== 'multi') {
-                    this.currentSum = this.selectedObjs.reduce((sum, o) => sum + o.val, 0);
-                }
+                if (config.mode !== 'multi') this.currentSum = this.selectedObjs.reduce((sum, o) => sum + o.val, 0);
                 this.updateSumDisplay();
-
-                // 將炸彈爆破視為一次大型清除
                 this.processClear(toClear);
                 if (config.mode === 'multi') this.generateNewTarget();
             }
 
             cancelSelectionWithError() {
                 let toReset = [...this.selectedObjs];
-                this.selectedObjs = []; this.updateSumDisplay();
-                playCancelSound();
+                this.selectedObjs = []; this.updateSumDisplay(); playCancelSound();
                 toReset.forEach(o => {
                     o.el.style.backgroundColor = '#E57373'; o.el.style.color = '#FFF';
                     setTimeout(() => {
@@ -429,11 +463,8 @@
 
             updateSumDisplay() {
                 if (config.mode === 'multi') {
-                    if (this.selectedObjs.length === 1) {
-                        this.sumBox.innerHTML = `🎯 找相乘 = <span style="color:#D32F2F">${this.currentTarget}</span> ( ${this.selectedObjs[0].val} × ? )`;
-                    } else {
-                        this.sumBox.innerHTML = `🎯 找相乘 = <span style="color:#D32F2F">${this.currentTarget}</span>`;
-                    }
+                    if (this.selectedObjs.length === 1) this.sumBox.innerHTML = `🎯 找相乘 = <span style="color:#D32F2F">${this.currentTarget}</span> ( ${this.selectedObjs[0].val} × ? )`;
+                    else this.sumBox.innerHTML = `🎯 找相乘 = <span style="color:#D32F2F">${this.currentTarget}</span>`;
                     this.sumBox.style.color = '#5D535E';
                 } else {
                     let target = parseInt(config.mode);
@@ -448,56 +479,40 @@
                 if (hexesToClear.length === 0) return;
                 playClearSound();
 
-                // --- Fever 狂熱連擊判定 ---
                 let now = Date.now();
-                if (now - this.lastClearTime < 3000) {
-                    this.comboCount++;
-                } else {
-                    this.comboCount = 1;
-                }
+                if (now - this.lastClearTime < 3000) this.comboCount++;
+                else this.comboCount = 1;
                 this.lastClearTime = now;
 
                 if (this.comboCount >= 3) {
                     if (!this.isFever) {
-                        this.isFever = true;
-                        this.container.classList.add('fever-active');
-                        this.feverBadge.style.display = 'inline-block';
-                        playFeverSound();
+                        this.isFever = true; this.container.classList.add('fever-active');
+                        this.feverBadge.style.display = 'inline-block'; playFeverSound();
                     }
-                    // 刷新狂熱時間 (6秒)
                     clearTimeout(this.feverTimeout);
                     this.feverTimeout = setTimeout(() => {
-                        this.isFever = false;
-                        this.comboCount = 0;
-                        this.container.classList.remove('fever-active');
-                        this.feverBadge.style.display = 'none';
+                        this.isFever = false; this.comboCount = 0;
+                        this.container.classList.remove('fever-active'); this.feverBadge.style.display = 'none';
                     }, 6000);
                 }
 
-                // 狂熱期間分數雙倍
                 let multiplier = this.isFever ? 2 : 1;
                 let scoreGain = (hexesToClear.length * 10) * multiplier;
-                this.score += scoreGain;
-                this.scoreDisplay.innerText = this.score;
+                this.score += scoreGain; this.scoreDisplay.innerText = this.score;
                 
-                // --- 破冰機制：檢查被消除方塊周圍是否有冰塊 ---
                 let clearedPoints = hexesToClear.map(h => ({x: h.x, y: h.y}));
                 this.activeHexes.forEach(h => {
                     if (h.isFrozen) {
                         for(let p of clearedPoints) {
                             let dx = h.x - p.x; let dy = h.y - p.y;
                             if (dx*dx + dy*dy < 4500) {
-                                h.isFrozen = false;
-                                h.el.classList.remove('frozen');
-                                this.spawnFloatingText(h.x, h.y, "解凍!", "#42A5F5");
-                                playBreakSound();
-                                break;
+                                h.isFrozen = false; h.el.classList.remove('frozen');
+                                this.spawnFloatingText(h.x, h.y, "解凍!", "#42A5F5"); playBreakSound(); break;
                             }
                         }
                     }
                 });
 
-                // 移除被消除的方塊
                 hexesToClear.forEach(obj => {
                     let index = this.activeHexes.indexOf(obj);
                     if (index > -1) this.activeHexes.splice(index, 1); 
@@ -507,18 +522,12 @@
                 });
                 
                 let lastObj = hexesToClear[hexesToClear.length - 1];
-
-                // --- 攻擊對手邏輯 ---
-                let isAttack = false;
-                if (config.mode === 'multi') isAttack = true; // 乘法答對必定攻擊
-                else if (hexesToClear.length >= 3) isAttack = true; // 加法要3塊以上
+                let isAttack = (config.mode === 'multi') || (hexesToClear.length >= 3);
 
                 if (config.players > 1 && isAttack) {
                     let attackPower = (config.mode === 'multi') ? 0.03 : 0.05;
-                    // 狂熱期間，攻擊力與冰凍數量加倍！
                     let actualPower = attackPower * multiplier; 
                     let freezeAmount = this.isFever ? 4 : 2;
-
                     this.spawnFloatingText(lastObj.x, lastObj.y, this.isFever ? `狂熱攻擊!` : `攻擊!`, '#D32F2F');
                     this.opponents.forEach(opp => opp.receiveAttack(actualPower, freezeAmount));
                 } else {
@@ -534,43 +543,31 @@
                 this.container.style.boxShadow = "inset 0 0 40px rgba(229, 115, 115, 0.9)";
                 setTimeout(() => { this.container.style.boxShadow = "inset 0 0 20px rgba(0,0,0,0.05)"; }, 400);
 
-                // 冰凍干擾：隨機把頂部附近的方塊結凍
                 let unfrozen = this.activeHexes.filter(h => !h.isFrozen && !h.falling && !h.isBomb);
-                // 盡量凍結靠近底部的危險方塊
                 unfrozen.sort((a, b) => b.y - a.y); 
                 
                 for(let i = 0; i < freezeAmount; i++) {
                     if (unfrozen.length > i) {
                         let target = unfrozen[i];
-                        target.isFrozen = true;
-                        target.el.classList.add('frozen');
-                        target.el.classList.remove('selected');
-                        
+                        target.isFrozen = true; target.el.classList.add('frozen'); target.el.classList.remove('selected');
                         let sIdx = this.selectedObjs.indexOf(target);
                         if(sIdx > -1) this.selectedObjs.splice(sIdx, 1);
                     }
                 }
-                
-                if (config.mode !== 'multi') {
-                    this.currentSum = this.selectedObjs.reduce((sum, o) => sum + o.val, 0);
-                }
+                if (config.mode !== 'multi') this.currentSum = this.selectedObjs.reduce((sum, o) => sum + o.val, 0);
                 this.updateSumDisplay();
             }
 
             checkConnectivity() {
                 let roots = this.activeHexes.filter(h => !h.falling && h.y <= this.topMostY + ROW_HEIGHT + 10);
-                let visited = new Set(roots);
-                let queue = [...roots];
+                let visited = new Set(roots); let queue = [...roots];
 
                 while(queue.length > 0) {
                     let curr = queue.shift();
                     for (let other of this.activeHexes) {
                         if (!visited.has(other) && !other.falling) {
                             let dx = curr.x - other.x; let dy = curr.y - other.y;
-                            if (dx*dx + dy*dy < 3600) { 
-                                visited.add(other);
-                                queue.push(other);
-                            }
+                            if (dx*dx + dy*dy < 3600) { visited.add(other); queue.push(other); }
                         }
                     }
                 }
@@ -578,12 +575,8 @@
                 let droppedCount = 0;
                 for (let h of this.activeHexes) {
                     if (!h.falling && !visited.has(h)) {
-                        h.falling = true;
-                        h.el.classList.add('falling');
-                        h.el.classList.remove('selected');
-                        h.isFrozen = false; // 掉落時解除結凍
-                        h.el.classList.remove('frozen');
-                        
+                        h.falling = true; h.el.classList.add('falling'); h.el.classList.remove('selected');
+                        h.isFrozen = false; h.el.classList.remove('frozen');
                         let idx = this.selectedObjs.indexOf(h);
                         if(idx > -1) this.selectedObjs.splice(idx, 1);
                         droppedCount++;
@@ -592,9 +585,7 @@
                 
                 if(droppedCount > 0) {
                     playBreakSound();
-                    if(config.mode !== 'multi') {
-                        this.currentSum = this.selectedObjs.reduce((sum, o) => sum + o.val, 0);
-                    }
+                    if(config.mode !== 'multi') this.currentSum = this.selectedObjs.reduce((sum, o) => sum + o.val, 0);
                     this.updateSumDisplay();
                 }
             }
@@ -610,26 +601,15 @@
                 
                 for (let i = this.activeHexes.length - 1; i >= 0; i--) {
                     let obj = this.activeHexes[i];
-                    
                     if (obj.falling) {
-                        obj.vy += 0.5; 
-                        obj.y += obj.vy;
-                        obj.el.style.top = obj.y + 'px';
-                        
+                        obj.vy += 0.5; obj.y += obj.vy; obj.el.style.top = obj.y + 'px';
                         if (obj.y > containerHeight) {
-                            obj.el.remove();
-                            this.activeHexes.splice(i, 1);
-                            this.score += 2; 
-                            this.scoreDisplay.innerText = this.score;
+                            obj.el.remove(); this.activeHexes.splice(i, 1);
+                            this.score += 2; this.scoreDisplay.innerText = this.score;
                         }
                     } else {
-                        obj.y += this.speed; 
-                        obj.el.style.top = obj.y + 'px';
-                        
-                        if (obj.y + HEX_HEIGHT > dangerLimit) {
-                            triggerGameOver(this); 
-                            return;
-                        }
+                        obj.y += this.speed; obj.el.style.top = obj.y + 'px';
+                        if (obj.y + HEX_HEIGHT > dangerLimit) { triggerGameOver(this); return; }
                     }
                 }
                 
@@ -663,6 +643,9 @@
         function triggerGameOver(loser) {
             globalGameOver = true;
             cancelAnimationFrame(mainLoopId);
+            stopBGM();
+            playGameOverSound();
+            fireConfetti(); // 觸發全螢幕勝利撒花
             
             const winnerDisplay = document.getElementById('winner-display');
             if (config.players === 1) {
@@ -673,6 +656,25 @@
             }
 
             document.getElementById('game-over-screen').classList.remove('hidden');
+        }
+
+        // --- 撒花特效 (Confetti) ---
+        function fireConfetti() {
+            const colors = ['#FF9800', '#E91E63', '#4CAF50', '#00BCD4', '#FFEB3B'];
+            for(let i = 0; i < 150; i++) {
+                let conf = document.createElement('div');
+                conf.classList.add('confetti');
+                conf.style.left = Math.random() * 100 + 'vw';
+                conf.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                
+                let duration = Math.random() * 3 + 2;
+                let delay = Math.random() * 2;
+                conf.style.animationDuration = `${duration}s`;
+                conf.style.animationDelay = `${delay}s`;
+                
+                document.body.appendChild(conf);
+                setTimeout(() => conf.remove(), (duration + delay) * 1000);
+            }
         }
     </script>
 </body>
